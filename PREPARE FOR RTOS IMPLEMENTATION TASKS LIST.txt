@@ -1,0 +1,64 @@
+Targeted Assembly Practice Tasks for RTOS Development
+An RTOS spends most of its Assembly life doing one thing: saving the state of one task and restoring the state of another. These tasks are progressive milestones designed to build exactly those muscles.
+
+Task 1: The "Thread Context" Snapshot (Register Manipulation)
+When a context switch happens, you must push all CPU registers onto the task's private stack. Because the Cortex-M0+ has restrictions on high registers, you have to get creative.
+
+The Goal: Write an assembly function that takes the values currently sitting in R0 through R12, plus the Link Register (LR), and pushes them onto the stack pointed to by R0 (acting as a dummy Stack Pointer).
+
+Why it matters: This is exactly how you create a boot-up context for a newly created task, or save a running state.
+
+Constraints to follow: * Remember that PUSH on Cortex-M0+ can easily push low registers (R0-R7) and LR.
+
+To save high registers (R8-R12), you will first need to copy them into low registers using MOV, and then push them.
+\\
+\\
+
+Task 2: Implement a Mock "Context Switch"
+Simulate switching from "Task A" to "Task B" purely in Assembly memory space.
+
+The Goal: 1. Define two blocks of memory in RAM to hold pointers to two different stacks (e.g., TaskA_SP and TaskB_SP).
+2. Write an assembly routine that mimics a context switch:
+
+Decrement the current stack pointer and save R4-R7 and R8-R11.
+
+Save the final stack pointer value into TaskA_SP.
+
+Load the stack pointer value from TaskB_SP into the CPU's Stack Pointer (SP).
+
+Pop the saved registers off this new stack to "restore" Task B.
+\\\\
+\\\\
+
+Why it matters: This sequence is the absolute beating heart of your future RTOS PendSV_Handler.
+
+Task 3: Exclusive Stack Isolation
+An RTOS utilizes two stack pointers: the Main Stack Pointer (MSP) for the OS kernel/interrupts, and the Process Stack Pointer (PSP) for user application threads.
+
+The Goal: Write a brief assembly sequence that:
+
+Allocates a block of memory to be a user stack.
+
+Assigns that memory address to the PSP register.
+
+Updates the CONTROL register to switch the CPU from using MSP to using PSP.
+
+Executes a few basic arithmetic operations to prove they are now executing on the PSP stack space.
+
+Why it matters: This keeps a crashing user task from blowing up your kernel stack.
+
+\\
+\\
+\\
+
+Task 4: The PendSV Trigger (Software Interrupt)
+Cortex-M kernels rely on the PendSV (Pending Supervisor Call) exception to perform the actual context switch safely after scheduling decisions are made.
+
+The Goal: Write a C function that calls an inline Assembly line (or calls a standalone Assembly function) that writes to the Interrupt Control and State Register (ICSR) at address 0xE000ED04 to manually trigger a PendSV interrupt.
+
+Why it matters: Your OS scheduler will decide who runs next in C, but it will use this specific register write to hand control over to your Assembly-based context switcher cleanly.
+
+Recommended Next Steps
+Set up a bare-metal assembly template for the Pico: Don't use the full standard SDK framework yet if you want pure assembly practice. Set up a minimal main.S file where you can step through line-by-line using your remote debugger setup.
+
+Keep the ARMv6-M Architecture Reference Manual handy: You will constantly want to check the restrictions on instructions like PUSH, POP, MOV, and BLX for low vs. high registers.
